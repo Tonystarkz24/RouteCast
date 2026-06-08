@@ -1,3 +1,4 @@
+from route_manager import save_route, load_routes
 import streamlit as st
 import requests
 
@@ -35,6 +36,25 @@ def get_advice(temp, rain, uv, wind):
 
     return advice
 
+st.header("📍 Save Daily Route")
+
+route_name = st.text_input("Route Name")
+
+destination = st.text_input("Destination City")
+
+travel_time = st.time_input("Travel Time")
+
+if st.button("Save Route"):
+
+    route = {
+        "name": route_name,
+        "destination": destination,
+        "time": str(travel_time)
+    }
+
+    save_route(route)
+
+    st.success("Route Saved!")
 if st.button("Get AI Weather Advice"):
 
     geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={city}&count=1"
@@ -51,7 +71,7 @@ if st.button("Get AI Weather Advice"):
             f"&hourly=precipitation_probability,uv_index"
             f"&forecast_days=1"
         )
-
+    
         weather_data = requests.get(weather_url).json()
 
         temp = weather_data["current"]["temperature_2m"]
@@ -76,3 +96,12 @@ if st.button("Get AI Weather Advice"):
 
     else:
         st.error("City not found. Try another city.")
+
+        st.header("📋 Saved Routes")
+
+routes = load_routes()
+
+for route in routes:
+    st.write(
+        f"**{route['name']}** → {route['destination']} at {route['time']}"
+    )
