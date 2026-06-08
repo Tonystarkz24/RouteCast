@@ -10,9 +10,10 @@ def load_routes():
         return []
 
 def save_route(route):
+
     routes = load_routes()
+
     routes.append(route)
 
     with open(FILE_NAME, "w") as file:
         json.dump(routes, file, indent=4)
-        

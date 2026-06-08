@@ -1,6 +1,7 @@
 [
     {
-        "name": "Campus Route",
+        "name": "Campus Road",
+        "start": "Wellawatte",
         "destination": "Malabe",
         "time": "08:30:00"
     }
