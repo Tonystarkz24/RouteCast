@@ -1,20 +1,38 @@
 import requests
 
+COUNTRY_CODES = {
+    "Sri Lanka": "lk",
+    "India": "in",
+    "Australia": "au",
+    "United Kingdom": "gb",
+    "United States": "us"
+}
+
 def get_coordinates(place, country):
+    country_code = COUNTRY_CODES.get(country, "")
 
-    query = f"{place}, {country}"
+    url = "https://nominatim.openstreetmap.org/search"
 
-    url = (
-        f"https://geocoding-api.open-meteo.com/v1/search"
-        f"?name={query}&count=1"
-    )
+    params = {
+        "q": f"{place}, {country}",
+        "format": "json",
+        "limit": 1,
+        "countrycodes": country_code
+    }
 
-    data = requests.get(url).json()
+    headers = {
+        "User-Agent": "RouteCastAI/1.0"
+    }
 
-    if "results" not in data:
+    response = requests.get(url, params=params, headers=headers)
+
+    data = response.json()
+
+    if len(data) == 0:
         return None
 
     return {
-        "lat": data["results"][0]["latitude"],
-        "lon": data["results"][0]["longitude"]
+        "lat": float(data[0]["lat"]),
+        "lon": float(data[0]["lon"]),
+        "display_name": data[0]["display_name"]
     }

@@ -1,11 +1,13 @@
 {
-    "name": "Darling's Home",
+    "name": "Campus Road",
     "country": "Sri Lanka",
-    "start": "Colombo",
-    "start_lat": 6.93548,
-    "start_lon": 79.84868,
+    "start": "Wellawatte",
+    "start_display": "Wellawatte, Colombo, Colombo District, Western Province, 00006, Sri Lanka",
+    "start_lat": 6.8770514,
+    "start_lon": 79.860348,
     "destination": "Malabe",
-    "dest_lat": 7.4726,
-    "dest_lon": 80.511,
-    "time": "12:50:00"
+    "dest_display": "Malabe, Colombo District, Western Province, 10115, Sri Lanka",
+    "dest_lat": 6.9040723,
+    "dest_lon": 79.9546189,
+    "time": "02:30:00"
 }

@@ -3,36 +3,13 @@
         "name": "Campus Road",
         "country": "Sri Lanka",
         "start": "Wellawatte",
+        "start_display": "Wellawatte, Colombo, Colombo District, Western Province, 00006, Sri Lanka",
+        "start_lat": 6.8770514,
+        "start_lon": 79.860348,
         "destination": "Malabe",
-        "time": "09:30:00"
-    },
-    {
-        "name": "Babyy's Homee",
-        "country": "Sri Lanka",
-        "start": "Colombo",
-        "destination": "Nugegoda",
-        "time": "07:00:00"
-    },
-    {
-        "name": "Darling's Home",
-        "country": "Sri Lanka",
-        "start": "Colombo",
-        "start_lat": 6.93548,
-        "start_lon": 79.84868,
-        "destination": "Kandy",
-        "dest_lat": 7.2906,
-        "dest_lon": 80.6336,
-        "time": "12:50:00"
-    },
-    {
-        "name": "Darling's Home",
-        "country": "Sri Lanka",
-        "start": "Colombo",
-        "start_lat": 6.93548,
-        "start_lon": 79.84868,
-        "destination": "Malabe",
-        "dest_lat": 7.4726,
-        "dest_lon": 80.511,
-        "time": "12:50:00"
+        "dest_display": "Malabe, Colombo District, Western Province, 10115, Sri Lanka",
+        "dest_lat": 6.9040723,
+        "dest_lon": 79.9546189,
+        "time": "02:30:00"
     }
 ]

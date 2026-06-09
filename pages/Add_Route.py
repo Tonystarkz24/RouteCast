@@ -4,7 +4,9 @@ import streamlit as st
 
 st.title("➕ Add Route")
 
-st.write("Create a new travel route")
+st.markdown("Create and save your daily travel routes.")
+
+# Route Information
 
 route_name = st.text_input(
     "🛣 Route Name",
@@ -23,32 +25,38 @@ country = st.selectbox(
 )
 
 start_city = st.text_input(
-    "📍 Start City",
-    placeholder="Example: Colombo"
+    "📍 Start Location",
+    placeholder="Example: Wellawatte"
 )
 
 destination = st.text_input(
-    "🎯 Destination City",
+    "🎯 Destination Location",
     placeholder="Example: Malabe"
 )
 
-travel_time = st.time_input("🕒 Travel Time")
+travel_time = st.time_input(
+    "🕒 Travel Time"
+)
 
-if st.button("💾 Save Route"):
+# Save Button
 
-    if not route_name:
+if st.button("💾 Save Route", use_container_width=True):
+
+    # Validation
+
+    if not route_name.strip():
         st.warning("Please enter a route name.")
         st.stop()
 
-    if not start_city:
-        st.warning("Please enter a start city.")
+    if not start_city.strip():
+        st.warning("Please enter a start location.")
         st.stop()
 
-    if not destination:
-        st.warning("Please enter a destination city.")
+    if not destination.strip():
+        st.warning("Please enter a destination location.")
         st.stop()
 
-    with st.spinner("Finding locations..."):
+    with st.spinner("🔍 Searching locations..."):
 
         start_coords = get_coordinates(
             start_city,
@@ -60,28 +68,35 @@ if st.button("💾 Save Route"):
             country
         )
 
+    # Error Handling
+
     if start_coords is None:
         st.error(
-            f"Could not find '{start_city}' in {country}"
+            f"❌ Could not find '{start_city}' in {country}"
         )
         st.stop()
 
     if dest_coords is None:
         st.error(
-            f"Could not find '{destination}' in {country}"
+            f"❌ Could not find '{destination}' in {country}"
         )
         st.stop()
 
+    # Route Object
+
     route = {
+
         "name": route_name,
 
         "country": country,
 
         "start": start_city,
+        "start_display": start_coords["display_name"],
         "start_lat": start_coords["lat"],
         "start_lon": start_coords["lon"],
 
         "destination": destination,
+        "dest_display": dest_coords["display_name"],
         "dest_lat": dest_coords["lat"],
         "dest_lon": dest_coords["lon"],
 
@@ -92,19 +107,30 @@ if st.button("💾 Save Route"):
 
     st.success("✅ Route Saved Successfully!")
 
-    st.write("### Saved Route Information")
+    st.divider()
 
-    st.write(f"🛣 Route: {route_name}")
-    st.write(f"🌍 Country: {country}")
+    st.subheader("📋 Route Summary")
+
+    st.write(f"🛣 Route Name: **{route_name}**")
+
+    st.write(f"🌍 Country: **{country}**")
 
     st.write(
-        f"📍 Start: {start_city} "
-        f"({start_coords['lat']}, {start_coords['lon']})"
+        f"📍 Start Location Found: **{start_coords['display_name']}**"
     )
 
     st.write(
-        f"🎯 Destination: {destination} "
-        f"({dest_coords['lat']}, {dest_coords['lon']})"
+        f"🎯 Destination Found: **{dest_coords['display_name']}**"
     )
 
-    st.write(f"🕒 Travel Time: {travel_time}")
+    st.write(f"🕒 Travel Time: **{travel_time}**")
+
+    with st.expander("📌 Saved Coordinates"):
+
+        st.write(
+            f"Start Coordinates: ({start_coords['lat']}, {start_coords['lon']})"
+        )
+
+        st.write(
+            f"Destination Coordinates: ({dest_coords['lat']}, {dest_coords['lon']})"
+        )
