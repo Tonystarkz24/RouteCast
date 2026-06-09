@@ -17,3 +17,12 @@ def save_route(route):
 
     with open(FILE_NAME, "w") as file:
         json.dump(routes, file, indent=4)
+
+def delete_route(index):
+
+    routes = load_routes()
+
+    routes.pop(index)
+
+    with open(FILE_NAME, "w") as file:
+        json.dump(routes, file, indent=4)

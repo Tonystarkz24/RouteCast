@@ -1,23 +1,36 @@
-from route_manager import load_routes
+from route_manager import load_routes, delete_route
 import streamlit as st
 
 st.title("🛣 My Routes")
 
 routes = load_routes()
 
+# Temporary debug line
+st.write("Number of routes:", len(routes))
+
 if len(routes) == 0:
     st.info("No routes saved yet.")
 
-for route in routes:
+for index, route in enumerate(routes):
 
-    st.subheader(route["name"])
+    with st.container():
 
-    st.write(
-        f"📍 {route['start']} ➜ {route['destination']}"
-    )
+        st.markdown(f"### 🛣 {route['name']}")
 
-    st.write(
-        f"🕒 Departure Time: {route['time']}"
-    )
+        st.write(f"📍 Start: {route['start']}")
+        st.write(f"🎯 Destination: {route['destination']}")
+        st.write(f"🕒 Departure Time: {route['time']}")
 
-    st.divider()
+        col1, col2 = st.columns(2)
+
+        with col1:
+            if st.button("🗺 View Route", key=f"view_{index}"):
+                st.success(f"Selected route: {route['name']}")
+
+        with col2:
+            if st.button("🗑 Delete", key=f"delete_{index}"):
+                delete_route(index)
+                st.success("Route deleted successfully!")
+                st.rerun()
+
+        st.divider()

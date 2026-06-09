@@ -1,8 +1,14 @@
 [
     {
-        "name": "Campus Road",
-        "start": "Wellawatte",
-        "destination": "Malabe",
-        "time": "08:30:00"
+        "name": "baby",
+        "start": "wellawatte",
+        "destination": "nugegoda",
+        "time": "19:44:00"
+    },
+    {
+        "name": "danger",
+        "start": "wellawatte",
+        "destination": "Kaduwela",
+        "time": "03:30:00"
     }
 ]
