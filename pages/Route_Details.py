@@ -1,7 +1,10 @@
+import openrouteservice.convert
 from route_manager import load_selected_route
+from route_service import get_route
 
 import streamlit as st
 import folium
+import openrouteservice.convert
 
 from streamlit_folium import st_folium
 
@@ -13,104 +16,90 @@ if route is None:
     st.warning("No route selected.")
     st.stop()
 
-# Route Information
-
-st.subheader(f"🛣 {route['name']}")
-
-col1, col2 = st.columns(2)
-
-with col1:
-    st.metric("🌍 Country", route["country"])
-
-with col2:
-    st.metric("🕒 Travel Time", route["time"])
-
-st.write(f"📍 Start: {route['start']}")
-st.write(f"🎯 Destination: {route['destination']}")
-
-# Coordinates
-
 start_lat = route["start_lat"]
 start_lon = route["start_lon"]
 
 dest_lat = route["dest_lat"]
 dest_lon = route["dest_lon"]
 
-with st.expander("📌 Route Coordinates"):
+route_data = get_route(
+    start_lon,
+    start_lat,
+    dest_lon,
+    dest_lat
+)
 
-    st.write(
-        f"Start Coordinates: ({start_lat}, {start_lon})"
+if "routes" not in route_data:
+    st.error("Routing failed")
+    st.json(route_data)
+    st.stop()
+
+route_info = route_data["routes"][0]
+
+distance_km = round(
+    route_info["summary"]["distance"] / 1000,
+    2
+)
+
+duration_min = round(
+    route_info["summary"]["duration"] / 60
+)
+
+st.subheader(route["name"])
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.metric("📏 Distance", f"{distance_km} km")
+
+with col2:
+    st.metric("🚗 Travel Time", f"{duration_min} min")
+
+encoded_geometry = route_info["geometry"]
+
+decoded = openrouteservice.convert.decode_polyline(
+    encoded_geometry
+)
+
+route_points = []
+
+for coord in decoded["coordinates"]:
+
+    lon = coord[0]
+    lat = coord[1]
+
+    route_points.append(
+        [lat, lon]
     )
-
-    st.write(
-        f"Destination Coordinates: ({dest_lat}, {dest_lon})"
-    )
-
-# Map Center
 
 center_lat = (start_lat + dest_lat) / 2
 center_lon = (start_lon + dest_lon) / 2
 
-# Create Map
-
 m = folium.Map(
     location=[center_lat, center_lon],
-    zoom_start=10
+    zoom_start=11
 )
-
-# Start Marker
 
 folium.Marker(
     [start_lat, start_lon],
-    popup=f"Start: {route['start']}",
-    tooltip=route['start'],
+    popup="Start",
     icon=folium.Icon(color="green")
 ).add_to(m)
 
-# Destination Marker
-
 folium.Marker(
     [dest_lat, dest_lon],
-    popup=f"Destination: {route['destination']}",
-    tooltip=route['destination'],
+    popup="Destination",
     icon=folium.Icon(color="red")
 ).add_to(m)
 
-# Route Line
-
 folium.PolyLine(
-    [
-        [start_lat, start_lon],
-        [dest_lat, dest_lon]
-    ],
-    weight=5,
-    opacity=0.8
+    route_points,
+    weight=6,
+    color="blue"
 ).add_to(m)
-
-st.subheader("🛣 Route Map")
 
 st_folium(
     m,
     width=1000,
     height=600
-)
-
-# Future Features Section
-
-st.divider()
-
-st.subheader("🚀 Upcoming Route Intelligence")
-
-st.info(
-    """
-    Coming Next:
-    
-    • Real Road Routing
-    • Distance Calculation
-    • Estimated Travel Duration
-    • Weather Along Route
-    • Risk Score
-    • Comfort Score
-    • AI Travel Recommendations
-    """
 )
