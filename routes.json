@@ -1,14 +1,9 @@
 [
     {
-        "name": "baby",
-        "start": "wellawatte",
-        "destination": "nugegoda",
-        "time": "19:44:00"
-    },
-    {
-        "name": "danger",
-        "start": "wellawatte",
-        "destination": "Kaduwela",
-        "time": "03:30:00"
+        "name": "Campus Road",
+        "country": "Sri Lanka",
+        "start": "Wellawatte",
+        "destination": "Malabe",
+        "time": "09:30:00"
     }
 ]

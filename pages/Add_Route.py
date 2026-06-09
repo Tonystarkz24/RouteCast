@@ -3,18 +3,30 @@ import streamlit as st
 
 st.title("➕ Add Route")
 
-route_name = st.text_input("Route Name")
+route_name = st.text_input("🛣 Route Name")
 
-start_city = st.text_input("Start City")
+country = st.selectbox(
+    "🌍 Country",
+    [
+        "Sri Lanka",
+        "India",
+        "Australia",
+        "United Kingdom",
+        "United States"
+    ]
+)
 
-destination = st.text_input("Destination City")
+start_city = st.text_input("📍 Start City")
 
-travel_time = st.time_input("Travel Time")
+destination = st.text_input("🎯 Destination City")
+
+travel_time = st.time_input("🕒 Travel Time")
 
 if st.button("Save Route"):
 
     route = {
         "name": route_name,
+        "country": country,
         "start": start_city,
         "destination": destination,
         "time": str(travel_time)
@@ -22,4 +34,4 @@ if st.button("Save Route"):
 
     save_route(route)
 
-    st.success("Route Saved Successfully!")
+    st.success("✅ Route Saved Successfully!")
