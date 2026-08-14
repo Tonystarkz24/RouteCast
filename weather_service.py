@@ -34,15 +34,7 @@ def extract_weather_at_hour(hourly_data, lat, lon, target_hour):
     if not times:
         return None
 
-    closest_index = 0
-    for i, time_string in enumerate(times):
-        try:
-            forecast_hour = int(time_string.split("T")[1].split(":")[0])
-            if forecast_hour >= target_hour:
-                closest_index = i
-                break
-        except (IndexError, ValueError):
-            pass
+    closest_index = min(max(0, target_hour), len(times) - 1)
 
     try:
         return {
@@ -56,6 +48,7 @@ def extract_weather_at_hour(hourly_data, lat, lon, target_hour):
         }
     except (IndexError, KeyError):
         return None
+
 
 
 def get_weather(lat, lon, journey_time):

@@ -26,9 +26,19 @@ def save_route(route):
 def delete_route(index):
     routes = load_routes()
     if 0 <= index < len(routes):
-        routes.pop(index)
+        deleted = routes.pop(index)
         with open(ROUTES_FILE, "w", encoding="utf-8") as file:
             json.dump(routes, file, indent=4)
+
+        cur_selected = st.session_state.get("selected_route")
+        if cur_selected and isinstance(cur_selected, dict) and cur_selected.get("name") == deleted.get("name"):
+            st.session_state["selected_route"] = None
+            if SELECTED_FILE.exists():
+                try:
+                    SELECTED_FILE.unlink()
+                except OSError:
+                    pass
+
 
 
 def save_selected_route(route):

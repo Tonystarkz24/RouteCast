@@ -187,8 +187,18 @@ for idx, w in enumerate(active_r["weather"], start=1):
         icon=folium.Icon(color=marker_color, icon="cloud")
     ).add_to(m)
 
-# Auto-fit map bounds dynamically
-m.fit_bounds([[min(all_lats), min(all_lons)], [max(all_lats), max(max(all_lons), max(all_lons))]])
+# Auto-fit map bounds dynamically with safety padding
+min_lat, max_lat = min(all_lats), max(all_lats)
+min_lon, max_lon = min(all_lons), max(all_lons)
+if min_lat == max_lat:
+    min_lat -= 0.005
+    max_lat += 0.005
+if min_lon == max_lon:
+    min_lon -= 0.005
+    max_lon += 0.005
+
+m.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]])
+
 
 st_folium(m, use_container_width=True, height=500)
 

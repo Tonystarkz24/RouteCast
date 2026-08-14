@@ -73,9 +73,25 @@ if st.button("🔍 Search Locations", use_container_width=True):
         with st.spinner("Searching for matching locations..."):
             st.session_state["start_candidates"] = search_locations(start_city, country, limit=5)
             st.session_state["dest_candidates"] = search_locations(destination, country, limit=5)
+            st.session_state["searched_start_query"] = start_city.strip()
+            st.session_state["searched_dest_query"] = destination.strip()
 
-start_candidates = st.session_state.get("start_candidates", [])
-dest_candidates = st.session_state.get("dest_candidates", [])
+        if not st.session_state["start_candidates"]:
+            st.error(f"❌ Could not find any location matching '{start_city}' in {country}.")
+        if not st.session_state["dest_candidates"]:
+            st.error(f"❌ Could not find any location matching '{destination}' in {country}.")
+
+
+# Check query consistency
+if (
+    st.session_state.get("searched_start_query") != start_city.strip()
+    or st.session_state.get("searched_dest_query") != destination.strip()
+):
+    start_candidates = []
+    dest_candidates = []
+else:
+    start_candidates = st.session_state.get("start_candidates", [])
+    dest_candidates = st.session_state.get("dest_candidates", [])
 
 selected_start_coords = None
 selected_dest_coords = None
@@ -91,6 +107,7 @@ if start_candidates and dest_candidates:
 
     selected_start_coords = next(c for c in start_candidates if c["display_name"] == chosen_start_name)
     selected_dest_coords = next(c for c in dest_candidates if c["display_name"] == chosen_dest_name)
+
 
 # Save Button
 

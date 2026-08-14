@@ -17,9 +17,11 @@ routes = load_routes()
 if not routes:
     st.info("💡 No saved routes yet. Navigate to **Add Route** in the sidebar to add your daily work or school commute!")
 else:
-    cols = st.columns(min(len(routes), 3))
-    for idx, r in enumerate(routes[:3]):
-        with cols[idx % 3]:
+    display_routes = routes[:3]
+    cols = st.columns(len(display_routes))
+    for idx, r in enumerate(display_routes):
+        with cols[idx]:
+
             st.container(border=True)
             st.markdown(f"### 🛣 {r['name']}")
             st.write(f"📍 **From**: {r['start']}")
