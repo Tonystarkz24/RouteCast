@@ -110,12 +110,14 @@ st.subheader("🔀 Route Comparison (Top 3 Alternatives)")
 cols = st.columns(len(evaluated_routes))
 for i, r in enumerate(evaluated_routes):
     with cols[i]:
-        st.markdown(f"### {r['label']}")
-        st.metric("📏 Distance", f"{r['distance']} km")
-        st.metric("⏱ Travel Time", r["duration"])
-        st.metric("⚠️ Weather Risk", f"{r['risk']}/100")
-        c_val = r['color']
-        st.markdown(f"**Map Color**: <span style='color:{c_val}; font-weight:bold;'>█ Polyline</span>", unsafe_allow_html=True)
+        with st.container(border=True):
+            st.markdown(f"### {r['label']}")
+            st.metric("📏 Distance", f"{r['distance']} km")
+            st.metric("⏱ Travel Time", r["duration"])
+            st.metric("⚠️ Weather Risk", f"{r['risk']}/100")
+            c_val = r['color']
+            st.markdown(f"**Map Path**: <span style='color:{c_val}; font-weight:bold;'>█ Polyline</span>", unsafe_allow_html=True)
+
 
 
 # Select active route for detailed breakdown

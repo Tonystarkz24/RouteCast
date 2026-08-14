@@ -7,47 +7,33 @@ from route_manager import (
 import streamlit as st
 
 st.title("🛣 My Routes")
+st.markdown("Manage your saved daily commute routes.")
 
 routes = load_routes()
 
 if len(routes) == 0:
-    st.info("No routes saved yet.")
+    st.info("💡 No routes saved yet. Click **Add Route** in the sidebar to create your first commute route!")
+else:
+    for index, route in enumerate(routes):
+        with st.container(border=True):
+            st.markdown(f"### 🛣 {route['name']}")
 
-for index, route in enumerate(routes):
+            c1, c2 = st.columns(2)
+            with c1:
+                st.write(f"📍 **Start**: {route.get('start_display', route['start'])}")
+                st.write(f"🎯 **Destination**: {route.get('dest_display', route['destination'])}")
+            with c2:
+                st.write(f"🚗 **Transport Mode**: {route.get('mode', '🚗 Car')}")
+                st.write(f"🕒 **Planned Time**: {route['time']}")
 
-    with st.container():
+            b_col1, b_col2 = st.columns(2)
 
-        st.markdown(f"### 🛣 {route['name']}")
+            with b_col1:
+                if st.button("🗺 Compare 3 Routes", key=f"view_{index}", use_container_width=True, type="primary"):
+                    save_selected_route(route)
+                    st.switch_page("pages/Route_Details.py")
 
-        st.write(f"🌍 Country: {route['country']}")
-        st.write(f"📍 Start: {route['start']}")
-        st.write(f"🎯 Destination: {route['destination']}")
-        st.write(f"🕒 Departure Time: {route['time']}")
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-
-            if st.button(
-                "🗺 View Route",
-                key=f"view_{index}"
-            ):
-
-                save_selected_route(route)
-
-                st.switch_page(
-                    "pages/Route_Details.py"
-                )
-
-        with col2:
-
-            if st.button(
-                "🗑 Delete",
-                key=f"delete_{index}"
-            ):
-
-                delete_route(index)
-
-                st.rerun()
-
-        st.divider()
+            with b_col2:
+                if st.button("🗑 Delete Route", key=f"delete_{index}", use_container_width=True):
+                    delete_route(index)
+                    st.rerun()

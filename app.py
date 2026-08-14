@@ -21,17 +21,17 @@ else:
     cols = st.columns(len(display_routes))
     for idx, r in enumerate(display_routes):
         with cols[idx]:
+            with st.container(border=True):
+                st.markdown(f"### 🛣 {r['name']}")
+                st.write(f"📍 **From**: {r['start']}")
+                st.write(f"🎯 **To**: {r['destination']}")
+                st.write(f"🚗 **Mode**: {r.get('mode', '🚗 Car')}")
+                st.write(f"🕒 **Time**: {r['time']}")
 
-            st.container(border=True)
-            st.markdown(f"### 🛣 {r['name']}")
-            st.write(f"📍 **From**: {r['start']}")
-            st.write(f"🎯 **To**: {r['destination']}")
-            st.write(f"🚗 **Mode**: {r.get('mode', '🚗 Car')}")
-            st.write(f"🕒 **Time**: {r['time']}")
+                if st.button(f"🗺 Compare 3 Routes", key=f"dash_view_{idx}", use_container_width=True, type="primary"):
+                    save_selected_route(r)
+                    st.switch_page("pages/Route_Details.py")
 
-            if st.button(f"🗺 Compare 3 Routes", key=f"dash_view_{idx}", use_container_width=True, type="primary"):
-                save_selected_route(r)
-                st.switch_page("pages/Route_Details.py")
 
 st.divider()
 
