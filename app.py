@@ -68,11 +68,16 @@ if st.button("Get AI Weather Advice", use_container_width=True):
             weather_data = weather_res.json() if weather_res.status_code == 200 else {}
 
             if "current" in weather_data and "hourly" in weather_data:
+                from datetime import datetime
+                cur_h = datetime.now().hour
+                hourly_times = weather_data["hourly"].get("time", [])
+                h_idx = min(max(0, cur_h), len(hourly_times) - 1)
+
                 temp = weather_data["current"]["temperature_2m"]
                 wind = weather_data["current"]["wind_speed_10m"]
 
-                rain = max(weather_data["hourly"]["precipitation_probability"])
-                uv = max(weather_data["hourly"]["uv_index"])
+                rain = weather_data["hourly"]["precipitation_probability"][h_idx]
+                uv = weather_data["hourly"]["uv_index"][h_idx]
 
                 st.subheader(f"Weather overview for {display_city}")
 
@@ -80,7 +85,7 @@ if st.button("Get AI Weather Advice", use_container_width=True):
                 with c1:
                     st.metric("Temperature", f"{temp} °C")
                 with c2:
-                    st.metric("Rain Chance", f"{rain}%")
+                    st.metric("Rain Chance (Current Hour)", f"{rain}%")
                 with c3:
                     st.metric("UV Index", round(uv, 1))
                 with c4:
@@ -88,11 +93,13 @@ if st.button("Get AI Weather Advice", use_container_width=True):
 
                 st.subheader("🤖 AI Travel Advice")
                 weather_summary = [{"temperature": temp, "rain": rain, "uv": uv, "wind": wind}]
-                advices = generate_route_advice(rain, weather_summary)
+                city_risk = calculate_risk_score(weather_summary)
+                advices = generate_route_advice(city_risk, weather_summary)
                 for a in advices:
                     st.write(a)
             else:
                 st.error("Unable to retrieve forecast data.")
+
         else:
             st.error("City not found")
     except Exception as e:

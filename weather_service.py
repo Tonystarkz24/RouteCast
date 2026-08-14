@@ -58,11 +58,15 @@ def get_weather(lat, lon, journey_time):
         return None
 
     try:
-        target_hour = int(str(journey_time).split(":")[0])
+        parts = str(journey_time).split(":")
+        target_hour = int(parts[0])
+        if len(parts) > 1 and int(parts[1]) >= 30:
+            target_hour += 1
     except (ValueError, AttributeError, IndexError):
         target_hour = 12
 
     return extract_weather_at_hour(hourly_data, lat, lon, target_hour)
+
 
 
 def calculate_risk_score(weather_list, transport_mode="🚗 Car / Vehicle"):
