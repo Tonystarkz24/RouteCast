@@ -1,7 +1,9 @@
+import math
 from route_manager import load_selected_route
 from route_service import get_route
 from weather_service import (
-    get_weather,
+    get_hourly_forecast,
+    extract_weather_at_hour,
     calculate_risk_score,
     generate_route_advice,
     find_best_departure_time
@@ -11,6 +13,43 @@ import streamlit as st
 import folium
 import openrouteservice.convert
 from streamlit_folium import st_folium
+
+
+def haversine_distance(lat1, lon1, lat2, lon2):
+    """Calculate Haversine distance in kilometers between two coordinates."""
+    R = 6371.0
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat / 2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
+
+
+def sample_points_by_distance(points, sample_count=5):
+    """Sample points along a polyline at equal physical kilometer intervals."""
+    if not points or len(points) <= sample_count:
+        return points
+
+    cum_distances = [0.0]
+    total_dist = 0.0
+    for i in range(1, len(points)):
+        d = haversine_distance(points[i-1][0], points[i-1][1], points[i][0], points[i][1])
+        total_dist += d
+        cum_distances.append(total_dist)
+
+    if total_dist == 0:
+        step = max(1, len(points) // sample_count)
+        return points[::step][:sample_count]
+
+    target_intervals = [i * (total_dist / (sample_count - 1)) for i in range(sample_count)]
+    sampled = []
+
+    for target in target_intervals:
+        best_idx = min(range(len(cum_distances)), key=lambda i: abs(cum_distances[i] - target))
+        sampled.append(points[best_idx])
+
+    return sampled
+
 
 st.title("🗺 Route Details & Alternative Paths")
 
@@ -46,9 +85,15 @@ if "routes" not in route_data or not route_data["routes"]:
     st.stop()
 
 routes_list = route_data["routes"]
-colors = ["#2563EB", "#9333EA", "#0D9488"]  # Blue, Purple, Teal
+colors = ["#2563EB", "#9333EA", "#0D9488"]
 
 evaluated_routes = []
+
+try:
+    dep_parts = str(route["time"]).split(":")
+    dep_hour_val = int(dep_parts[0]) + (int(dep_parts[1]) / 60.0 if len(dep_parts) > 1 else 0.0)
+except Exception:
+    dep_hour_val = 12.0
 
 for idx, r_info in enumerate(routes_list):
     if "points" in r_info:
@@ -59,25 +104,27 @@ for idx, r_info in enumerate(routes_list):
         points = [[coord[1], coord[0]] for coord in decoded["coordinates"]]
 
     dist_km = round(r_info["summary"]["distance"] / 1000, 2)
-
     duration_sec = r_info["summary"]["duration"]
 
     h = int(duration_sec // 3600)
     m = int((duration_sec % 3600) // 60)
     dur_str = f"{h} hr {m} mins" if h > 0 else f"{m} mins"
 
-    # Sample 5 points along polyline
-    sample_count = 5
-    step = max(1, len(points) // sample_count)
-    sampled_points = points[::step][:sample_count]
+    # Haversine distance-based equal km sampling
+    sampled_points = sample_points_by_distance(points, sample_count=5)
 
-    # Weather sampling for route
+    # Time-synced segment weather forecasting
+    duration_hours = duration_sec / 3600.0
     weather_list = []
-    for p in sampled_points:
-        w = get_weather(p[0], p[1], route["time"])
+
+    for p_idx, p in enumerate(sampled_points):
+        segment_progress = p_idx / max(1, (len(sampled_points) - 1))
+        arrival_hour = round(dep_hour_val + (segment_progress * duration_hours))
+        w = extract_weather_at_hour(get_hourly_forecast(p[0], p[1]), p[0], p[1], arrival_hour)
         if w:
             w["lat"], w["lon"] = p[0], p[1]
             weather_list.append(w)
+
 
     risk = calculate_risk_score(weather_list, transport_mode)
     advice = generate_route_advice(risk, weather_list, transport_mode)

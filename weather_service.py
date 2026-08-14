@@ -1,8 +1,10 @@
 import requests
+import streamlit as st
 
 
+@st.cache_data(ttl=900, show_spinner=False)
 def get_hourly_forecast(lat, lon):
-    """Fetch 48-hour forecast data for a specific coordinate to support overnight routes."""
+    """Fetch 48-hour forecast data for a specific coordinate (cached for 15 mins)."""
     url = (
         "https://api.open-meteo.com/v1/forecast"
         f"?latitude={lat}&longitude={lon}"
@@ -23,6 +25,7 @@ def get_hourly_forecast(lat, lon):
     except Exception:
         pass
     return None
+
 
 
 def extract_weather_at_hour(hourly_data, lat, lon, target_hour):

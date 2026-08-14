@@ -1,5 +1,6 @@
 import requests
 from urllib.parse import quote
+import streamlit as st
 
 COUNTRY_CODES = {
     "Sri Lanka": "lk",
@@ -10,10 +11,12 @@ COUNTRY_CODES = {
 }
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
 def search_locations(place, country, limit=5):
-    """Search for multiple candidate locations to prevent geocoding ambiguity."""
+    """Search for multiple candidate locations to prevent geocoding ambiguity (cached for 1hr)."""
     country_code = COUNTRY_CODES.get(country, "")
     candidates = []
+
 
     url = "https://nominatim.openstreetmap.org/search"
     params = {
