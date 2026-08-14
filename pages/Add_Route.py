@@ -28,16 +28,21 @@ transport_mode = st.selectbox(
     "🚗 Transport Mode",
     [
         "🚗 Car / Vehicle",
+        "🏍️ Motorcycle / Scooter",
         "🚴 Bicycle",
+        "🚌 Bus / Transit",
         "🚶 Walking"
     ]
 )
 
 profile_map = {
     "🚗 Car / Vehicle": "driving-car",
+    "🏍️ Motorcycle / Scooter": "driving-car",
     "🚴 Bicycle": "cycling-regular",
+    "🚌 Bus / Transit": "driving-car",
     "🚶 Walking": "foot-walking"
 }
+
 
 start_city = st.text_input(
     "📍 Start Location",

@@ -1,41 +1,44 @@
 import streamlit as st
 import requests
+from route_manager import load_routes, save_selected_route
+from weather_service import generate_route_advice
 
-st.title("🏠 RouteCast AI")
-st.write("AI-powered weather, outfit, and travel assistant")
+st.set_page_config(page_title="RouteCast AI", page_icon="🏠", layout="wide")
 
-city = st.text_input("Enter Destination City")
+st.title("🏠 RouteCast AI - Commuter Dashboard")
+st.markdown("Your AI-powered weather-aware travel assistant for daily routes & commutes.")
 
-def get_advice(temp, rain, uv, wind):
-    advice = []
+st.divider()
 
-    if rain >= 60:
-        advice.append("🌧 High rain chance. Carry an umbrella or raincoat.")
-    elif rain >= 30:
-        advice.append("🌦 Medium rain chance. Better to carry a small umbrella.")
-    else:
-        advice.append("☀ Rain chance is low. Umbrella is optional.")
+# Saved Routes Quick Access Section
+st.subheader("🛣 Your Daily Commute Routes")
+routes = load_routes()
 
-    if temp < 22:
-        advice.append("🧥 Weather is cool. Wear a hoodie or thick clothes.")
-    elif temp > 30:
-        advice.append("👕 Weather is warm. Wear light-colored cotton clothes.")
-    else:
-        advice.append("👌 Normal comfortable clothes are fine.")
+if not routes:
+    st.info("💡 No saved routes yet. Navigate to **Add Route** in the sidebar to add your daily work or school commute!")
+else:
+    cols = st.columns(min(len(routes), 3))
+    for idx, r in enumerate(routes[:3]):
+        with cols[idx % 3]:
+            st.container(border=True)
+            st.markdown(f"### 🛣 {r['name']}")
+            st.write(f"📍 **From**: {r['start']}")
+            st.write(f"🎯 **To**: {r['destination']}")
+            st.write(f"🚗 **Mode**: {r.get('mode', '🚗 Car')}")
+            st.write(f"🕒 **Time**: {r['time']}")
 
-    if uv >= 7:
-        advice.append("☀ UV is high. Use sunscreen, sunglasses, or a cap.")
-    elif uv >= 4:
-        advice.append("🌤 UV is moderate. Try to avoid long direct sunlight.")
-    else:
-        advice.append("✅ UV level is safe.")
+            if st.button(f"🗺 Compare 3 Routes", key=f"dash_view_{idx}", use_container_width=True, type="primary"):
+                save_selected_route(r)
+                st.switch_page("pages/Route_Details.py")
 
-    if wind >= 30:
-        advice.append("💨 Wind is strong. Be careful with umbrellas.")
+st.divider()
 
-    return advice
+# Instant City Weather Advisory
+st.subheader("🔍 Quick City Weather & Travel Advisory")
 
-if st.button("Get AI Weather Advice"):
+city = st.text_input("Enter Destination City", placeholder="Example: Colombo, Kandy, Sydney...")
+
+if st.button("Get AI Weather Advice", use_container_width=True):
     if not city.strip():
         st.warning("Please enter a city name.")
         st.stop()
@@ -49,6 +52,7 @@ if st.button("Get AI Weather Advice"):
 
             lat = geo_data["results"][0]["latitude"]
             lon = geo_data["results"][0]["longitude"]
+            display_city = f"{geo_data['results'][0]['name']}, {geo_data['results'][0].get('country', '')}"
 
             weather_url = (
                 f"https://api.open-meteo.com/v1/forecast?"
@@ -68,22 +72,26 @@ if st.button("Get AI Weather Advice"):
                 rain = max(weather_data["hourly"]["precipitation_probability"])
                 uv = max(weather_data["hourly"]["uv_index"])
 
-                st.subheader(f"Weather for {city}")
+                st.subheader(f"Weather overview for {display_city}")
 
-                st.metric("Temperature", f"{temp} °C")
-                st.metric("Rain Chance", f"{rain}%")
-                st.metric("UV Index", round(uv, 1))
-                st.metric("Wind Speed", f"{wind} km/h")
+                c1, c2, c3, c4 = st.columns(4)
+                with c1:
+                    st.metric("Temperature", f"{temp} °C")
+                with c2:
+                    st.metric("Rain Chance", f"{rain}%")
+                with c3:
+                    st.metric("UV Index", round(uv, 1))
+                with c4:
+                    st.metric("Wind Speed", f"{wind} km/h")
 
-                st.subheader("🤖 AI Advice")
-
-                advice_list = get_advice(temp, rain, uv, wind)
-
-                for advice in advice_list:
-                    st.write(advice)
+                st.subheader("🤖 AI Travel Advice")
+                weather_summary = [{"temperature": temp, "rain": rain, "uv": uv, "wind": wind}]
+                advices = generate_route_advice(rain, weather_summary)
+                for a in advices:
+                    st.write(a)
             else:
                 st.error("Unable to retrieve forecast data.")
         else:
             st.error("City not found")
     except Exception as e:
-        st.error(f"Network error: Unable to fetch weather data ({e})")
+        st.error(f"Network error: Unable to fetch weather data ({e})")

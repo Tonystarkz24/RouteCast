@@ -10,10 +10,9 @@ from weather_service import (
 import streamlit as st
 import folium
 import openrouteservice.convert
-
 from streamlit_folium import st_folium
 
-st.title("🗺 Route Details")
+st.title("🗺 Route Details & Alternative Paths")
 
 route = load_selected_route()
 
@@ -25,216 +24,183 @@ start_lat = route["start_lat"]
 start_lon = route["start_lon"]
 dest_lat = route["dest_lat"]
 dest_lon = route["dest_lon"]
+transport_mode = route.get("mode", "🚗 Car / Vehicle")
+profile = route.get("profile", "driving-car")
 
 st.subheader(f"🛣 {route['name']}")
+st.write(f"📍 **Start**: {route.get('start_display', route['start'])}")
+st.write(f"🎯 **Destination**: {route.get('dest_display', route['destination'])}")
+st.write(f"🌍 **Country**: {route['country']} | 🚗 **Transport**: {transport_mode}")
+st.write(f"🕒 **Planned Time**: {route['time']}")
 
-profile = route.get("profile", "driving-car")
-mode_label = route.get("mode", "🚗 Car")
-
-st.write(f"📍 Start: {route.get('start_display', route['start'])}")
-st.write(f"🎯 Destination: {route.get('dest_display', route['destination'])}")
-st.write(f"🌍 Country: {route['country']} | Mode: {mode_label}")
-st.write(f"🕒 Planned Time: {route['time']}")
-
-with st.spinner("Calculating real road route..."):
+with st.spinner("Calculating 3 alternative real-road routes & analyzing weather..."):
     route_data = get_route(start_lon, start_lat, dest_lon, dest_lat, profile=profile)
 
 if "error" in route_data:
     st.error(f"❌ Routing Error: {route_data['error']}")
-    st.info("The OpenRouteService API may be temporarily unavailable. Please try again in a moment.")
+    st.info("The OpenRouteService API may be temporarily unavailable. Please try again.")
     st.stop()
 
-if "routes" not in route_data:
+if "routes" not in route_data or not route_data["routes"]:
     st.error("❌ Routing failed - unexpected response format")
-    st.json(route_data)
     st.stop()
 
-route_info = route_data["routes"][0]
+routes_list = route_data["routes"]
+colors = ["#2563EB", "#9333EA", "#0D9488"]  # Blue, Purple, Teal
 
-distance_km = round(route_info["summary"]["distance"] / 1000, 2)
-total_seconds = route_info["summary"]["duration"]
-hours = int(total_seconds // 3600)
-minutes = int((total_seconds % 3600) // 60)
+evaluated_routes = []
 
-if hours > 0:
-    duration_text = f"{hours} hr {minutes} mins"
-else:
-    duration_text = f"{minutes} mins"
+for idx, r_info in enumerate(routes_list):
+    encoded_geom = r_info["geometry"]
+    decoded = openrouteservice.convert.decode_polyline(encoded_geom)
 
-col1, col2 = st.columns(2)
+    points = [[coord[1], coord[0]] for coord in decoded["coordinates"]]
 
-with col1:
-    st.metric("📏 Road Distance", f"{distance_km} km")
+    dist_km = round(r_info["summary"]["distance"] / 1000, 2)
+    duration_sec = r_info["summary"]["duration"]
 
-with col2:
-    st.metric("⏱ Estimated Duration", duration_text)
+    h = int(duration_sec // 3600)
+    m = int((duration_sec % 3600) // 60)
+    dur_str = f"{h} hr {m} mins" if h > 0 else f"{m} mins"
+
+    # Sample 5 points along polyline
+    sample_count = 5
+    step = max(1, len(points) // sample_count)
+    sampled_points = points[::step][:sample_count]
+
+    # Weather sampling for route
+    weather_list = []
+    for p in sampled_points:
+        w = get_weather(p[0], p[1], route["time"])
+        if w:
+            w["lat"], w["lon"] = p[0], p[1]
+            weather_list.append(w)
+
+    risk = calculate_risk_score(weather_list, transport_mode)
+    advice = generate_route_advice(risk, weather_list, transport_mode)
+
+    try:
+        cur_hour = int(str(route["time"]).split(":")[0])
+    except (ValueError, AttributeError, IndexError):
+        cur_hour = 12
+
+    best_dep = find_best_departure_time(weather_list, cur_hour, transport_mode)
+
+    evaluated_routes.append({
+        "index": idx + 1,
+        "label": "🏆 Best Route" if idx == 0 else f"🛣 Alternative {idx + 1}",
+        "distance": dist_km,
+        "duration": dur_str,
+        "duration_sec": duration_sec,
+        "risk": risk,
+        "weather": weather_list,
+        "advice": advice,
+        "best_departure": best_dep,
+        "points": points,
+        "color": colors[idx % len(colors)]
+    })
+
+# Sort or rank routes (Primary is lowest risk & fastest)
+st.divider()
+st.subheader("🔀 Route Comparison (Top 3 Alternatives)")
+
+cols = st.columns(len(evaluated_routes))
+for i, r in enumerate(evaluated_routes):
+    with cols[i]:
+        st.markdown(f"### {r['label']}")
+        st.metric("📏 Distance", f"{r['distance']} km")
+        st.metric("⏱ Travel Time", r["duration"])
+        st.metric("⚠️ Weather Risk", f"{r['risk']}/100")
+        c_val = r['color']
+        st.markdown(f"**Map Color**: <span style='color:{c_val}; font-weight:bold;'>█ Polyline</span>", unsafe_allow_html=True)
 
 
-encoded_geometry = route_info["geometry"]
-
-decoded = openrouteservice.convert.decode_polyline(encoded_geometry)
-
-route_points = []
-
-for coord in decoded["coordinates"]:
-    lon = coord[0]
-    lat = coord[1]
-    route_points.append([lat, lon])
-
-# Sample weather points along the route
-sample_count = 5
-step = max(1, len(route_points) // sample_count)
-
-sample_points = route_points[::step][:sample_count]
-
-weather_results = []
-
-with st.spinner("Analyzing weather along route..."):
-
-    for point in sample_points:
-
-        lat = point[0]
-        lon = point[1]
-
-        weather = get_weather(
-            lat,
-            lon,
-            route["time"]
-        )
-
-        if weather is not None:
-
-            weather["lat"] = lat
-            weather["lon"] = lon
-
-            weather_results.append(weather)
-
-if len(weather_results) == 0:
-    st.warning("⚠️ Could not fetch weather data along the route. This may be due to network issues.")
-    st.info("Try refreshing the page or checking your internet connection.")
-    st.stop()
-
-risk_score = calculate_risk_score(weather_results)
-try:
-    current_hour = int(str(route["time"]).split(":")[0])
-except (ValueError, AttributeError, IndexError):
-    current_hour = 12
-
-best_departure = find_best_departure_time(
-    weather_results,
-    current_hour
+# Select active route for detailed breakdown
+selected_route_idx = st.radio(
+    "Select Route Path to View Map & Advisories:",
+    options=range(len(evaluated_routes)),
+    format_func=lambda i: f"{evaluated_routes[i]['label']} ({evaluated_routes[i]['distance']} km, Risk: {evaluated_routes[i]['risk']}/100)"
 )
-advice_list = generate_route_advice(risk_score, weather_results)
+
+active_r = evaluated_routes[selected_route_idx]
 
 st.divider()
 
-st.subheader("⚠️ Route Risk Analysis")
+st.subheader(f"🤖 AI Analysis for {active_r['label']}")
 
-st.metric("Route Risk Score", f"{risk_score}/100")
-st.subheader("🤖 AI Departure Optimizer")
+col_a, col_b = st.columns(2)
+with col_a:
+    st.info(f"Recommended Departure: **{active_r['best_departure']['hour']:02d}:00** (Min Risk: {round(active_r['best_departure']['risk'])}/100)")
+with col_b:
+    st.write(f"Current Planned Time: **{route['time']}**")
 
-recommended_hour = best_departure["hour"]
+st.markdown("#### 📋 Travel & Outfit Advisories:")
+for adv in active_r["advice"]:
+    st.write(adv)
 
-st.success(
-    f"Recommended Departure Time: "
-    f"{recommended_hour:02d}:00"
-)
+# Render Folium Map
+st.subheader("🛣 Multi-Route Map View")
 
-st.write(
-    f"Current Planned Time: {route['time']}"
-)
+all_lats = [p[0] for r in evaluated_routes for p in r["points"]]
+all_lons = [p[1] for r in evaluated_routes for p in r["points"]]
 
-st.write(
-    f"Estimated Risk at Best Time: "
-    f"{round(best_departure['risk'])}/100"
-)
+m = folium.Map(location=[sum(all_lats) / len(all_lats), sum(all_lons) / len(all_lons)])
 
-st.subheader("🤖 AI Route Advice")
-
-for advice in advice_list:
-    st.write(advice)
-
-# Map
-center_lat = (start_lat + dest_lat) / 2
-center_lon = (start_lon + dest_lon) / 2
-
-m = folium.Map(
-    location=[center_lat, center_lon],
-    zoom_start=11
-)
-
+# Add start and end markers
 folium.Marker(
     [start_lat, start_lon],
     popup=f"Start: {route['start']}",
-    tooltip="Start",
-    icon=folium.Icon(color="green")
+    tooltip="Start Location",
+    icon=folium.Icon(color="green", icon="play")
 ).add_to(m)
 
 folium.Marker(
     [dest_lat, dest_lon],
     popup=f"Destination: {route['destination']}",
-    tooltip="Destination",
-    icon=folium.Icon(color="red")
+    tooltip="Destination Location",
+    icon=folium.Icon(color="red", icon="stop")
 ).add_to(m)
 
-folium.PolyLine(
-    route_points,
-    weight=6,
-    color="blue",
-    opacity=0.8
-).add_to(m)
-
-# Weather markers
-for index, weather in enumerate(weather_results, start=1):
-    rain = weather["rain"]
-
-    if rain >= 60:
-        marker_color = "red"
-    elif rain >= 30:
-        marker_color = "orange"
-    else:
-        marker_color = "green"
-
-    popup_text = (
-        f"Weather Point {index}<br>"
-        f"Temp: {weather['temperature']}°C<br>"
-        f"Rain: {weather['rain']}%<br>"
-        f"UV: {round(weather['uv'], 1)}<br>"
-        f"Wind: {weather['wind']} km/h"
-    )
-
-    folium.Marker(
-        [weather["lat"], weather["lon"]],
-        popup=popup_text,
-        tooltip=f"Weather Point {index}",
-        icon=folium.Icon(color=marker_color)
+# Draw all alternative route polylines
+for r in evaluated_routes:
+    is_active = (r["index"] == active_r["index"])
+    folium.PolyLine(
+        r["points"],
+        weight=8 if is_active else 4,
+        color=r["color"],
+        opacity=0.9 if is_active else 0.5,
+        tooltip=f"{r['label']} ({r['distance']} km)"
     ).add_to(m)
 
-st.subheader("🛣 Route Map with Weather Points")
+# Add weather markers for active route
+for idx, w in enumerate(active_r["weather"], start=1):
+    rain = w["rain"]
+    marker_color = "red" if rain >= 60 else "orange" if rain >= 30 else "green"
+    popup_txt = f"Point {idx}<br>Temp: {w['temperature']}°C<br>Rain: {w['rain']}%<br>UV: {round(w['uv'],1)}<br>Wind: {w['wind']} km/h"
+    folium.Marker(
+        [w["lat"], w["lon"]],
+        popup=popup_txt,
+        tooltip=f"Weather Point {idx}",
+        icon=folium.Icon(color=marker_color, icon="cloud")
+    ).add_to(m)
 
-st_folium(
-    m,
-    use_container_width=True,
-    height=500
-)
+# Auto-fit map bounds dynamically
+m.fit_bounds([[min(all_lats), min(all_lons)], [max(all_lats), max(max(all_lons), max(all_lons))]])
 
+st_folium(m, use_container_width=True, height=500)
 
 st.divider()
 
-st.subheader("🌦 Weather Along Route")
-
-for index, weather in enumerate(weather_results, start=1):
-    st.write(f"### Point {index}")
-    col1, col2, col3, col4 = st.columns(4)
-
-    with col1:
-        st.metric("Temp", f"{weather['temperature']}°C")
-
-    with col2:
-        st.metric("Rain", f"{weather['rain']}%")
-
-    with col3:
-        st.metric("UV", round(weather["uv"], 1))
-
-    with col4:
+st.subheader("🌦 Segment Weather Details")
+for idx, w in enumerate(active_r["weather"], start=1):
+    st.write(f"### Point {idx}")
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        st.metric("Temp", f"{w['temperature']}°C")
+    with c2:
+        st.metric("Rain Chance", f"{w['rain']}%")
+    with c3:
+        st.metric("UV Index", round(w['uv'], 1))
+    with c4:
+        st.metric("Wind Speed", f"{w['wind']} km/h")
         st.metric("Wind", f"{weather['wind']} km/h")

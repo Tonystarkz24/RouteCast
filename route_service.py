@@ -20,6 +20,11 @@ def get_route(start_lon, start_lat, end_lon, end_lat, profile="driving-car"):
             [start_lon, start_lat],
             [end_lon, end_lat]
         ],
+        "alternative_routes": {
+            "target_count": 3,
+            "weight_factor": 1.4,
+            "share_factor": 0.6
+        },
         "instructions": False,
         "geometry": True,
         "elevation": False,
@@ -33,11 +38,12 @@ def get_route(start_lon, start_lat, end_lon, end_lat, profile="driving-car"):
             url,
             json=body,
             headers=headers,
-            timeout=10
+            timeout=12
         )
         if response.status_code == 200:
             return response.json()
         else:
             return {"error": f"API returned status code {response.status_code}"}
     except Exception as e:
-        return {"error": f"Network or timeout error: {str(e)}"}
+        return {"error": f"Network or timeout error: {str(e)}"}
+

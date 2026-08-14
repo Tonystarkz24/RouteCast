@@ -24,5 +24,20 @@
         "dest_lat": 6.8630854,
         "dest_lon": 79.9014222,
         "time": "12:30:00"
+    },
+    {
+        "name": "Commute to Campus",
+        "country": "Sri Lanka",
+        "mode": "\ud83d\ude97 Car / Vehicle",
+        "profile": "driving-car",
+        "start": "Wellawatte",
+        "start_display": "Wellawatte, Colombo, Colombo District, Western Province, 00006, Sri Lanka",
+        "start_lat": 6.8770514,
+        "start_lon": 79.860348,
+        "destination": "SLIIT Malabe",
+        "dest_display": "SLIIT, Kaduwela Road (New Kandy Road), Malabe, Colombo District, Western Province, 10113, Sri Lanka",
+        "dest_lat": 6.9143498,
+        "dest_lon": 79.972684,
+        "time": "08:15:00"
     }
 ]
