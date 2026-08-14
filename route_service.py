@@ -23,10 +23,16 @@ def get_route(start_lon, start_lat, end_lon, end_lat):
         "geometry_simplify": False
     }
 
-    response = requests.post(
-        url,
-        json=body,
-        headers=headers
-    )
-
-    return response.json()
+    try:
+        response = requests.post(
+            url,
+            json=body,
+            headers=headers,
+            timeout=10
+        )
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return {"error": f"API returned status code {response.status_code}"}
+    except Exception as e:
+        return {"error": f"Network or timeout error: {str(e)}"}

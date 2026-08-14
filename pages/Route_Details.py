@@ -1,6 +1,11 @@
 from route_manager import load_selected_route
 from route_service import get_route
-from weather_service import get_weather, calculate_risk_score, generate_route_advice
+from weather_service import (
+    get_weather,
+    calculate_risk_score,
+    generate_route_advice,
+    find_best_departure_time
+)
 
 import streamlit as st
 import folium
@@ -31,8 +36,13 @@ st.write(f"🕒 Planned Time: {route['time']}")
 with st.spinner("Calculating real road route..."):
     route_data = get_route(start_lon, start_lat, dest_lon, dest_lat)
 
+if "error" in route_data:
+    st.error(f"❌ Routing Error: {route_data['error']}")
+    st.info("The OpenRouteService API may be temporarily unavailable. Please try again in a moment.")
+    st.stop()
+
 if "routes" not in route_data:
-    st.error("Routing failed")
+    st.error("❌ Routing failed - unexpected response format")
     st.json(route_data)
     st.stop()
 
@@ -69,22 +79,40 @@ sample_points = route_points[::step][:sample_count]
 weather_results = []
 
 with st.spinner("Analyzing weather along route..."):
+
     for point in sample_points:
+
         lat = point[0]
         lon = point[1]
 
-        weather = get_weather(lat, lon)
+        weather = get_weather(
+            lat,
+            lon,
+            route["time"]
+        )
 
         if weather is not None:
+
             weather["lat"] = lat
             weather["lon"] = lon
+
             weather_results.append(weather)
 
 if len(weather_results) == 0:
-    st.warning("Could not fetch weather along route.")
+    st.warning("⚠️ Could not fetch weather data along the route. This may be due to network issues.")
+    st.info("Try refreshing the page or checking your internet connection.")
     st.stop()
 
 risk_score = calculate_risk_score(weather_results)
+try:
+    current_hour = int(str(route["time"]).split(":")[0])
+except (ValueError, AttributeError, IndexError):
+    current_hour = 12
+
+best_departure = find_best_departure_time(
+    weather_results,
+    current_hour
+)
 advice_list = generate_route_advice(risk_score, weather_results)
 
 st.divider()
@@ -92,6 +120,23 @@ st.divider()
 st.subheader("⚠️ Route Risk Analysis")
 
 st.metric("Route Risk Score", f"{risk_score}/100")
+st.subheader("🤖 AI Departure Optimizer")
+
+recommended_hour = best_departure["hour"]
+
+st.success(
+    f"Recommended Departure Time: "
+    f"{recommended_hour:02d}:00"
+)
+
+st.write(
+    f"Current Planned Time: {route['time']}"
+)
+
+st.write(
+    f"Estimated Risk at Best Time: "
+    f"{round(best_departure['risk'])}/100"
+)
 
 st.subheader("🤖 AI Route Advice")
 
@@ -158,9 +203,10 @@ st.subheader("🛣 Route Map with Weather Points")
 
 st_folium(
     m,
-    width=1000,
-    height=600
+    use_container_width=True,
+    height=500
 )
+
 
 st.divider()
 

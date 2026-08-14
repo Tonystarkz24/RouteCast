@@ -36,44 +36,54 @@ def get_advice(temp, rain, uv, wind):
     return advice
 
 if st.button("Get AI Weather Advice"):
+    if not city.strip():
+        st.warning("Please enter a city name.")
+        st.stop()
 
-    geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={city}&count=1"
-    geo_data = requests.get(geo_url).json()
+    try:
+        geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={city}&count=1"
+        geo_res = requests.get(geo_url, timeout=10)
+        geo_data = geo_res.json() if geo_res.status_code == 200 else {}
 
-    if "results" in geo_data:
+        if "results" in geo_data and len(geo_data["results"]) > 0:
 
-        lat = geo_data["results"][0]["latitude"]
-        lon = geo_data["results"][0]["longitude"]
+            lat = geo_data["results"][0]["latitude"]
+            lon = geo_data["results"][0]["longitude"]
 
-        weather_url = (
-            f"https://api.open-meteo.com/v1/forecast?"
-            f"latitude={lat}&longitude={lon}"
-            f"&current=temperature_2m,wind_speed_10m"
-            f"&hourly=precipitation_probability,uv_index"
-            f"&forecast_days=1"
-        )
+            weather_url = (
+                f"https://api.open-meteo.com/v1/forecast?"
+                f"latitude={lat}&longitude={lon}"
+                f"&current=temperature_2m,wind_speed_10m"
+                f"&hourly=precipitation_probability,uv_index"
+                f"&forecast_days=1"
+            )
 
-        weather_data = requests.get(weather_url).json()
+            weather_res = requests.get(weather_url, timeout=10)
+            weather_data = weather_res.json() if weather_res.status_code == 200 else {}
 
-        temp = weather_data["current"]["temperature_2m"]
-        wind = weather_data["current"]["wind_speed_10m"]
+            if "current" in weather_data and "hourly" in weather_data:
+                temp = weather_data["current"]["temperature_2m"]
+                wind = weather_data["current"]["wind_speed_10m"]
 
-        rain = max(weather_data["hourly"]["precipitation_probability"])
-        uv = max(weather_data["hourly"]["uv_index"])
+                rain = max(weather_data["hourly"]["precipitation_probability"])
+                uv = max(weather_data["hourly"]["uv_index"])
 
-        st.subheader(f"Weather for {city}")
+                st.subheader(f"Weather for {city}")
 
-        st.metric("Temperature", f"{temp} °C")
-        st.metric("Rain Chance", f"{rain}%")
-        st.metric("UV Index", round(uv, 1))
-        st.metric("Wind Speed", f"{wind} km/h")
+                st.metric("Temperature", f"{temp} °C")
+                st.metric("Rain Chance", f"{rain}%")
+                st.metric("UV Index", round(uv, 1))
+                st.metric("Wind Speed", f"{wind} km/h")
 
-        st.subheader("🤖 AI Advice")
+                st.subheader("🤖 AI Advice")
 
-        advice_list = get_advice(temp, rain, uv, wind)
+                advice_list = get_advice(temp, rain, uv, wind)
 
-        for advice in advice_list:
-            st.write(advice)
-
-    else:
-        st.error("City not found")
+                for advice in advice_list:
+                    st.write(advice)
+            else:
+                st.error("Unable to retrieve forecast data.")
+        else:
+            st.error("City not found")
+    except Exception as e:
+        st.error(f"Network error: Unable to fetch weather data ({e})")
