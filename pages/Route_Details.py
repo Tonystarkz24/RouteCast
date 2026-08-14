@@ -51,12 +51,15 @@ colors = ["#2563EB", "#9333EA", "#0D9488"]  # Blue, Purple, Teal
 evaluated_routes = []
 
 for idx, r_info in enumerate(routes_list):
-    encoded_geom = r_info["geometry"]
-    decoded = openrouteservice.convert.decode_polyline(encoded_geom)
-
-    points = [[coord[1], coord[0]] for coord in decoded["coordinates"]]
+    if "points" in r_info:
+        points = r_info["points"]
+    else:
+        encoded_geom = r_info["geometry"]
+        decoded = openrouteservice.convert.decode_polyline(encoded_geom)
+        points = [[coord[1], coord[0]] for coord in decoded["coordinates"]]
 
     dist_km = round(r_info["summary"]["distance"] / 1000, 2)
+
     duration_sec = r_info["summary"]["duration"]
 
     h = int(duration_sec // 3600)

@@ -2,6 +2,30 @@ import requests
 from config import ORS_API_KEY
 
 
+def get_osrm_fallback_route(start_lon, start_lat, end_lon, end_lat):
+    """Fallback router using free OSRM API if OpenRouteService times out or fails."""
+    try:
+        url = f"https://router.project-osrm.org/route/v1/driving/{start_lon},{start_lat};{end_lon},{end_lat}?overview=full&geometries=geojson&alternatives=true"
+        res = requests.get(url, timeout=10)
+        if res.status_code == 200:
+            data = res.json()
+            if "routes" in data and data["routes"]:
+                parsed_routes = []
+                for r in data["routes"]:
+                    coords = [[c[1], c[0]] for c in r["geometry"]["coordinates"]]
+                    parsed_routes.append({
+                        "summary": {
+                            "distance": r["distance"],
+                            "duration": r["duration"]
+                        },
+                        "points": coords
+                    })
+                return {"routes": parsed_routes, "source": "OSRM"}
+    except Exception:
+        pass
+    return None
+
+
 def get_route(start_lon, start_lat, end_lon, end_lat, profile="driving-car"):
 
     valid_profiles = ["driving-car", "cycling-regular", "foot-walking"]
@@ -38,12 +62,18 @@ def get_route(start_lon, start_lat, end_lon, end_lat, profile="driving-car"):
             url,
             json=body,
             headers=headers,
-            timeout=12
+            timeout=25
         )
         if response.status_code == 200:
             return response.json()
-        else:
-            return {"error": f"API returned status code {response.status_code}"}
-    except Exception as e:
-        return {"error": f"Network or timeout error: {str(e)}"}
+    except Exception:
+        pass
+
+    # Fallback to OSRM if OpenRouteService times out or errors
+    fallback_res = get_osrm_fallback_route(start_lon, start_lat, end_lon, end_lat)
+    if fallback_res:
+        return fallback_res
+
+    return {"error": "Routing services are currently busy or unavailable. Please try again in a moment."}
+
 
