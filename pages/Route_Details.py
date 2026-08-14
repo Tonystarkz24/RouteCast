@@ -202,7 +202,22 @@ if min_lon == max_lon:
 m.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]])
 
 
-st_folium(m, use_container_width=True, height=500)
+st.divider()
+
+st.subheader("📈 Dynamic Hourly Weather Trend for Route")
+if active_r["weather"] and "hourly" in active_r["weather"][0]:
+    import pandas as pd
+    first_w = active_r["weather"][0]["hourly"]
+    times = [t.split("T")[1][:5] for t in first_w.get("time", [])[:24]]
+    rains = first_w.get("precipitation_probability", [])[:24]
+    temps = first_w.get("temperature_2m", [])[:24]
+
+    chart_df = pd.DataFrame({
+        "Rain Probability (%)": rains,
+        "Temperature (°C)": temps
+    }, index=times)
+
+    st.line_chart(chart_df)
 
 st.divider()
 
@@ -217,4 +232,5 @@ for idx, w in enumerate(active_r["weather"], start=1):
     with c3:
         st.metric("UV Index", round(w['uv'], 1))
     with c4:
-        st.metric("Wind Speed", f"{w['wind']} km/h")
+        st.metric("Wind Speed", f"{w['wind']} km/h")
+

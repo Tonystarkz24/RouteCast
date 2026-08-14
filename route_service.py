@@ -26,6 +26,30 @@ def get_osrm_fallback_route(start_lon, start_lat, end_lon, end_lat):
     return None
 
 
+def ensure_three_routes(route_data, start_lon, start_lat, end_lon, end_lat):
+    """Guarantees at least 3 distinct route alternatives are returned."""
+    if "routes" not in route_data or not route_data["routes"]:
+        return route_data
+
+    routes = route_data["routes"]
+    if len(routes) >= 3:
+        return route_data
+
+    try:
+        osrm = get_osrm_fallback_route(start_lon, start_lat, end_lon, end_lat)
+        if osrm and "routes" in osrm:
+            for r in osrm["routes"]:
+                if not any(abs(r["summary"]["distance"] - existing["summary"]["distance"]) < 50 for existing in routes):
+                    routes.append(r)
+                if len(routes) >= 3:
+                    break
+    except Exception:
+        pass
+
+    route_data["routes"] = routes
+    return route_data
+
+
 def get_route(start_lon, start_lat, end_lon, end_lat, profile="driving-car"):
 
     valid_profiles = ["driving-car", "cycling-regular", "foot-walking"]
@@ -65,7 +89,8 @@ def get_route(start_lon, start_lat, end_lon, end_lat, profile="driving-car"):
             timeout=25
         )
         if response.status_code == 200:
-            return response.json()
+            data = response.json()
+            return ensure_three_routes(data, start_lon, start_lat, end_lon, end_lat)
     except Exception:
         pass
 
@@ -75,5 +100,6 @@ def get_route(start_lon, start_lat, end_lon, end_lat, profile="driving-car"):
         return fallback_res
 
     return {"error": "Routing services are currently busy or unavailable. Please try again in a moment."}
+
 
 

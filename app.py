@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 from route_manager import load_routes, save_selected_route
-from weather_service import generate_route_advice
+from weather_service import generate_route_advice, evaluate_saved_route_alerts, calculate_risk_score
 
 st.set_page_config(page_title="RouteCast AI", page_icon="🏠", layout="wide")
 
@@ -10,9 +10,28 @@ st.markdown("Your AI-powered weather-aware travel assistant for daily routes & c
 
 st.divider()
 
+# Saved Routes & Alerts
+routes = load_routes()
+route_alerts = evaluate_saved_route_alerts(routes)
+
+if route_alerts:
+    st.subheader("🔔 Daily Commute Weather Alerts & Notifications")
+    for alert in route_alerts:
+        with st.container(border=True):
+            st.markdown(f"### 🚨 Weather Hazard Warning: **{alert['name']}** ({alert['start']} ➔ {alert['destination']})")
+            a_col1, a_col2 = st.columns([3, 1])
+            with a_col1:
+                st.warning(f"🌧 **Rain Chance**: {alert['max_rain']}% at planned departure ({alert['time']}) | ⚠️ **Risk**: {alert['risk']}/100 | Mode: {alert['mode']}")
+                for advice_item in alert['advice']:
+                    st.write(f"- {advice_item}")
+            with a_col2:
+                if st.button("🗺 Compare 3 Routes", key=f"alert_btn_{alert['name']}", use_container_width=True, type="primary"):
+                    save_selected_route(alert["route"])
+                    st.switch_page("pages/Route_Details.py")
+    st.divider()
+
 # Saved Routes Quick Access Section
 st.subheader("🛣 Your Daily Commute Routes")
-routes = load_routes()
 
 if not routes:
     st.info("💡 No saved routes yet. Navigate to **Add Route** in the sidebar to add your daily work or school commute!")
@@ -23,6 +42,7 @@ else:
         with cols[idx]:
             with st.container(border=True):
                 st.markdown(f"### 🛣 {r['name']}")
+
                 st.write(f"📍 **From**: {r['start']}")
                 st.write(f"🎯 **To**: {r['destination']}")
                 st.write(f"🚗 **Mode**: {r.get('mode', '🚗 Car')}")

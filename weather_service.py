@@ -182,4 +182,55 @@ def find_best_departure_time(hourly_forecasts_with_coords, current_hour, transpo
         lowest_risk = 50
 
     return {"hour": best_hour, "risk": lowest_risk}
+
+
+def evaluate_saved_route_alerts(routes):
+    """
+    Evaluates weather hazards across all saved daily commuter routes for today.
+    Returns a list of alert dictionaries for routes with Rain >= 30%, UV >= 7, or Wind >= 28 km/h.
+    """
+    alerts = []
+    if not routes:
+        return alerts
+
+    for route in routes:
+        try:
+            start_lat = route["start_lat"]
+            start_lon = route["start_lon"]
+            dest_lat = route["dest_lat"]
+            dest_lon = route["dest_lon"]
+            journey_time = route.get("time", "08:00")
+            transport_mode = route.get("mode", "🚗 Car / Vehicle")
+
+            w_start = get_weather(start_lat, start_lon, journey_time)
+            w_dest = get_weather(dest_lat, dest_lon, journey_time)
+
+            weather_list = [w for w in [w_start, w_dest] if w]
+
+            if weather_list:
+                risk = calculate_risk_score(weather_list, transport_mode)
+                max_rain = max(w["rain"] for w in weather_list)
+                max_uv = max(w["uv"] for w in weather_list)
+                max_wind = max(w["wind"] for w in weather_list)
+
+                if max_rain >= 30 or max_uv >= 7 or max_wind >= 28 or risk >= 40:
+                    advice = generate_route_advice(risk, weather_list, transport_mode)
+                    alerts.append({
+                        "route": route,
+                        "name": route["name"],
+                        "start": route["start"],
+                        "destination": route["destination"],
+                        "time": journey_time,
+                        "mode": transport_mode,
+                        "risk": risk,
+                        "max_rain": max_rain,
+                        "max_uv": max_uv,
+                        "max_wind": max_wind,
+                        "advice": advice
+                    })
+        except Exception:
+            pass
+
+    return alerts
+
 
