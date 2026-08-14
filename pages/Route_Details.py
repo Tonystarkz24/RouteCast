@@ -205,5 +205,4 @@ for idx, w in enumerate(active_r["weather"], start=1):
     with c3:
         st.metric("UV Index", round(w['uv'], 1))
     with c4:
-        st.metric("Wind Speed", f"{w['wind']} km/h")
-        st.metric("Wind", f"{weather['wind']} km/h")
+        st.metric("Wind Speed", f"{w['wind']} km/h")
