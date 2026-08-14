@@ -28,13 +28,16 @@ dest_lon = route["dest_lon"]
 
 st.subheader(f"🛣 {route['name']}")
 
-st.write(f"📍 Start: {route['start']}")
-st.write(f"🎯 Destination: {route['destination']}")
-st.write(f"🌍 Country: {route['country']}")
+profile = route.get("profile", "driving-car")
+mode_label = route.get("mode", "🚗 Car")
+
+st.write(f"📍 Start: {route.get('start_display', route['start'])}")
+st.write(f"🎯 Destination: {route.get('dest_display', route['destination'])}")
+st.write(f"🌍 Country: {route['country']} | Mode: {mode_label}")
 st.write(f"🕒 Planned Time: {route['time']}")
 
 with st.spinner("Calculating real road route..."):
-    route_data = get_route(start_lon, start_lat, dest_lon, dest_lat)
+    route_data = get_route(start_lon, start_lat, dest_lon, dest_lat, profile=profile)
 
 if "error" in route_data:
     st.error(f"❌ Routing Error: {route_data['error']}")
@@ -49,15 +52,23 @@ if "routes" not in route_data:
 route_info = route_data["routes"][0]
 
 distance_km = round(route_info["summary"]["distance"] / 1000, 2)
-duration_min = round(route_info["summary"]["duration"] / 60)
+total_seconds = route_info["summary"]["duration"]
+hours = int(total_seconds // 3600)
+minutes = int((total_seconds % 3600) // 60)
+
+if hours > 0:
+    duration_text = f"{hours} hr {minutes} mins"
+else:
+    duration_text = f"{minutes} mins"
 
 col1, col2 = st.columns(2)
 
 with col1:
-    st.metric("📏 Distance", f"{distance_km} km")
+    st.metric("📏 Road Distance", f"{distance_km} km")
 
 with col2:
-    st.metric("🚗 Estimated Travel", f"{duration_min} min")
+    st.metric("⏱ Estimated Duration", duration_text)
+
 
 encoded_geometry = route_info["geometry"]
 

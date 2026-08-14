@@ -1,9 +1,14 @@
 import requests
 from config import ORS_API_KEY
 
-def get_route(start_lon, start_lat, end_lon, end_lat):
 
-    url = "https://api.openrouteservice.org/v2/directions/driving-car"
+def get_route(start_lon, start_lat, end_lon, end_lat, profile="driving-car"):
+
+    valid_profiles = ["driving-car", "cycling-regular", "foot-walking"]
+    if profile not in valid_profiles:
+        profile = "driving-car"
+
+    url = f"https://api.openrouteservice.org/v2/directions/{profile}"
 
     headers = {
         "Authorization": ORS_API_KEY,
@@ -35,4 +40,4 @@ def get_route(start_lon, start_lat, end_lon, end_lat):
         else:
             return {"error": f"API returned status code {response.status_code}"}
     except Exception as e:
-        return {"error": f"Network or timeout error: {str(e)}"}
+        return {"error": f"Network or timeout error: {str(e)}"}
